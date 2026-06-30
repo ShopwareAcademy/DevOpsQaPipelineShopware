@@ -2,39 +2,40 @@
 
 This project is part of the **DevOps** learning path of the Shopware Academy.
 
-It shows the prepared reference project state for the practical lab **Building a QA Pipeline With GitHub Actions**.
+It shows the finished reference project state for the practical lab **Building a Shopware QA Pipeline With GitHub Actions**.
 
 It demonstrates how to:
 
 - Start from a prepared Shopware project repository.
 - Add QA tooling with PHPStan and PHPUnit.
 - Include the Academy example plugin `AcademyPhpUnit` as testable plugin code.
-- Prepare the repository for a GitHub Actions QA pipeline.
+- Build focused GitHub Actions workflow files for a Shopware QA pipeline.
 - Keep local environment files and generated runtime files out of Git.
 
 Tested for **Shopware 6.7**.
 
 ## Reference Project
 
-This repository is an educational reference state for the Academy practical lab. It is meant for comparing your local result with a known project state before you add the GitHub Actions workflow.
+This repository is an educational reference state for the Academy practical lab. It is meant for comparing your local result with a known finished project state after you create the GitHub Actions workflows.
 
 The most important files and folders to compare are:
 
 - `composer.json`
 - `composer.lock`
 - `.gitignore`
-- `.env.example`
 - `custom/plugins/AcademyPhpUnit/`
+- `.github/workflows/qa-smoke-test.yml`
+- `.github/workflows/phpstan.yml`
+- `.github/workflows/unit-tests.yml`
+- `.github/workflows/integration-tests.yml`
 
-The GitHub Actions workflow file is intentionally not part of this initial setup state yet. In the learning unit, you create `.github/workflows/qa-pipeline.yml` step by step.
+The learning unit creates the workflow files step by step. This repository contains the finished reference state with separate workflow files for the smoke test, PHPStan, unit tests, and the prepared integration-test layer.
 
 This repository is not a production template. The project structure and credentials are intentionally simple for local learning.
 
 ## Environment Files
 
 The generated `.env` file is not committed because it contains local values such as `APP_SECRET`, `INSTANCE_ID`, and `DATABASE_URL`.
-
-Use `.env.example` as a safe reference if you need to recreate local environment values.
 
 ## Academy Example Plugin
 
@@ -46,7 +47,9 @@ custom/plugins/AcademyPhpUnit
 
 The plugin provides a `phpunit.xml` file and PHPUnit test code. This gives the QA workflow real plugin code to discover and execute during the unit-test job.
 
-The standalone plugin also has its own GitHub Actions workflow. This reference project keeps the focus on the DevOps learning unit, so the workflow for this lab is created later at the project root.
+The plugin does not provide a `phpunit.integration.xml` file. Therefore the integration-test workflow prepares Shopware with MySQL and then prints `No plugin integration test configuration found.` This is expected for this reference project.
+
+The standalone plugin also has its own GitHub Actions workflow. This reference project keeps the focus on the DevOps learning unit, so the QA workflows for this lab live at the Shopware project root.
 
 ## Optional: Run the Project Locally
 
@@ -58,13 +61,7 @@ If you want to run it locally, install dependencies first:
 composer install
 ```
 
-Then create your own `.env` from the example file and adjust the values for your local setup:
-
-```bash
-cp .env.example .env
-```
-
-You can then use the generated Shopware Docker development commands from this project, for example:
+You need to create your own local `.env` before running the project. You can then use the generated Shopware Docker development commands from this project, for example:
 
 ```bash
 make up
