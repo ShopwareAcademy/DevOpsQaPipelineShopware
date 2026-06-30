@@ -1,0 +1,11 @@
+parameters:
+    paths:
+        - custom/plugins
+        - custom/static-plugins
+    level: 9
+    excludePaths:
+        analyseAndScan:
+            - %currentWorkingDirectory%/custom/plugins/*/tests
+            - %currentWorkingDirectory%/custom/plugins/*/tests/**
+            - %currentWorkingDirectory%/custom/static-plugins/*/tests
+            - %currentWorkingDirectory%/custom/static-plugins/*/tests/**
