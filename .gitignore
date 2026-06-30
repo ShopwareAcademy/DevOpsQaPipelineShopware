@@ -1,0 +1,35 @@
+/.idea
+/vendor/
+
+/.env
+/.env.dev
+/node_modules/
+*.bak
+
+# Do not commit nested Git metadata when Academy example plugins are copied in.
+**/.git/
+
+# The learning unit creates the QA workflow at the project root step by step.
+/custom/plugins/AcademyPhpUnit/.github/
+
+###> shopware/core ###
+.env.local
+.env.local.php
+.env.*.local
+/public/bundles/*
+/public/media/*
+/public/theme/*
+/public/thumbnail/*
+/public/sitemap/*
+/files/*
+!/files/.htaccess
+/var/*
+!/var/.htaccess
+/auth.json
+/install.lock
+/public/asset-manifest.json
+###< shopware/core ###
+
+###> phpunit/phpunit ###
+/.phpunit.cache/
+###< phpunit/phpunit ###
