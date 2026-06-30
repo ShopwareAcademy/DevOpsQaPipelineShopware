@@ -16,6 +16,23 @@ jobs:
   unit-tests:
     name: Unit tests
     runs-on: ubuntu-24.04
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: shopware_unit_test
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      DATABASE_URL: mysql://root:root@host.docker.internal:3306/shopware_unit_test
+      APP_ENV: test
+      APP_SECRET: ci-unit-test-secret-not-for-production
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -24,8 +41,12 @@ jobs:
         run: |
           docker run --rm \
             --user "$(id -u):$(id -g)" \
+            --add-host=host.docker.internal:host-gateway \
             -v "${{ github.workspace }}:/workspace" \
             -w /workspace \
+            -e DATABASE_URL="${DATABASE_URL}" \
+            -e APP_ENV="${APP_ENV}" \
+            -e APP_SECRET="${APP_SECRET}" \
             "${{ env.SHOPWARE_CI_IMAGE }}" \
             sh -lc '
               composer install --no-interaction --prefer-dist
@@ -34,6 +55,7 @@ jobs:
               for plugin in custom/plugins/*/ custom/static-plugins/*/; do
                 if [ -f "${plugin}phpunit.xml" ]; then
                   found=1
+                  echo "Running unit tests for $(basename "${plugin}")"
                   composer install --no-interaction --prefer-dist --working-dir="${plugin}"
                   vendor/bin/phpunit \
                     --configuration="${plugin}phpunit.xml" \
