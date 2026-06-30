@@ -1,0 +1,85 @@
+name: Integration tests
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  SHOPWARE_CI_IMAGE: ghcr.io/shopware/docker-dev-ci-test:203-php8.5.4-node24-nginx
+
+jobs:
+  integration-tests:
+    name: Integration tests
+    runs-on: ubuntu-24.04
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: shopware_test
+          MYSQL_USER: shopware
+          MYSQL_PASSWORD: shopware
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      DATABASE_URL: mysql://shopware:shopware@host.docker.internal:3306/shopware_test
+      APP_ENV: test
+      APP_SECRET: ci-test-secret-not-for-production
+      PROJECT_ROOT: /workspace
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Prepare and run plugin integration tests
+        run: |
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            --add-host=host.docker.internal:host-gateway \
+            -v "${{ github.workspace }}:/workspace" \
+            -w /workspace \
+            -e DATABASE_URL="${DATABASE_URL}" \
+            -e APP_ENV="${APP_ENV}" \
+            -e APP_SECRET="${APP_SECRET}" \
+            -e PROJECT_ROOT="${PROJECT_ROOT}" \
+            "${{ env.SHOPWARE_CI_IMAGE }}" \
+            sh -lc '
+              composer install --no-interaction --prefer-dist
+              php bin/console system:install --create-database --basic-setup --no-interaction
+              php bin/console plugin:refresh
+              if [ -d "custom/plugins/AcademyPhpUnit" ]; then
+                php bin/console plugin:install --activate AcademyPhpUnit
+              else
+                echo "AcademyPhpUnit plugin not found; skipping plugin activation."
+              fi
+              mkdir -p build/test-results/integration
+              found=0
+              for plugin in custom/plugins/*/ custom/static-plugins/*/; do
+                if [ -f "${plugin}phpunit.integration.xml" ]; then
+                  found=1
+                  vendor/bin/phpunit \
+                    --configuration="${plugin}phpunit.integration.xml" \
+                    --log-junit="build/test-results/integration/$(basename "${plugin}")-junit.xml"
+                fi
+              done
+              if [ "$found" -eq 0 ]; then
+                echo "No plugin integration test configuration found."
+              fi
+            '
+
+      - name: Upload integration test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-reports
+          path: build/test-results/integration/*.xml
+          if-no-files-found: ignore
