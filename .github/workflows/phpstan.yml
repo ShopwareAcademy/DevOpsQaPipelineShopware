@@ -1,0 +1,38 @@
+name: PHPStan
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  SHOPWARE_CI_IMAGE: ghcr.io/shopware/docker-dev-ci-test:203-php8.5.4-node24-nginx
+
+jobs:
+  phpstan:
+    name: PHPStan
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Run PHPStan
+        run: |
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -v "${{ github.workspace }}:/workspace" \
+            -w /workspace \
+            "${{ env.SHOPWARE_CI_IMAGE }}" \
+            sh -lc "composer install --no-interaction --prefer-dist && vendor/bin/phpstan analyse --configuration=phpstan.neon --error-format=json > phpstan-report.json"
+
+      - name: Upload PHPStan report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phpstan-report
+          path: phpstan-report.json
+          if-no-files-found: ignore
