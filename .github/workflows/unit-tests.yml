@@ -1,0 +1,54 @@
+name: Unit tests
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  SHOPWARE_CI_IMAGE: ghcr.io/shopware/docker-dev-ci-test:203-php8.5.4-node24-nginx
+
+jobs:
+  unit-tests:
+    name: Unit tests
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Run plugin unit tests
+        run: |
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -v "${{ github.workspace }}:/workspace" \
+            -w /workspace \
+            "${{ env.SHOPWARE_CI_IMAGE }}" \
+            sh -lc '
+              composer install --no-interaction --prefer-dist
+              mkdir -p build/test-results/unit
+              found=0
+              for plugin in custom/plugins/*/ custom/static-plugins/*/; do
+                if [ -f "${plugin}phpunit.xml" ]; then
+                  found=1
+                  composer install --no-interaction --prefer-dist --working-dir="${plugin}"
+                  vendor/bin/phpunit \
+                    --configuration="${plugin}phpunit.xml" \
+                    --log-junit="build/test-results/unit/$(basename "${plugin}")-junit.xml"
+                fi
+              done
+              if [ "$found" -eq 0 ]; then
+                echo "No plugin unit test configuration found."
+              fi
+            '
+
+      - name: Upload unit test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-reports
+          path: build/test-results/unit/*.xml
+          if-no-files-found: ignore
